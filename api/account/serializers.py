@@ -46,5 +46,7 @@ class UserCreateSerializer(UserSerializer):
         user.set_password(password)
         user.save()
         if not settings.TESTING:
-            send_email_signup_success.delay(validated_data["email"])
+            send_email_signup_success.delay(
+                validated_data["email"], validated_data["username"]
+            )
         return user
