@@ -1,0 +1,56 @@
+version: '3.7'
+
+services:
+  db:
+    image: mysql:8.0.35-debian
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    env_file:
+      - .env
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_HOST=${DB_HOST}
+    ports:
+      - 3307:${DB_PORT}
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: sh -c "cd api && python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    environment:
+      - DockerHome=/home/app
+    env_file:
+      - .env
+    image: django_test
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - 6378:6379
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: django_celery
+    command: sh -c "cd api && celery -A api worker -l INFO"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+
+volumes:
+  mysql_data:
